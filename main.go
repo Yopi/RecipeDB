@@ -23,6 +23,7 @@ type KitchenForm struct {
 	Item   string 	`form:"Item"`
 	Amount float64 `form:"Amount"`
 	Unit string `form:"Unit"`
+	Unknown string `form:"Unknown"`
 }
 
 type Food struct {
@@ -117,17 +118,19 @@ func main() {
 		var newKitchen Kitchen
 		newKitchen.Item = kitchen.Item
 		newKitchen.Amount.Float64 = kitchen.Amount
-		if kitchen.Amount == 0.0 {
-			//kitchen.Amount = nil
-			newKitchen.Amount.Valid = false
-		} else {
-			newKitchen.Amount.Valid = true
-		}
+		
 		err := db.SelectOne(&newKitchen, "SELECT * FROM kitchen WHERE Item = $1", newKitchen.Item)
 
 		// If item exists
 		if err == nil {
 			fmt.Println("Trying to update kitchen")
+			newKitchen.Amount.Float64 = newKitchen.Amount.Float64 + kitchen.Amount
+			if (kitchen.Amount == 0.0 || newKitchen.Amount.Valid == false) && kitchen.Unknown != "true" {
+				newKitchen.Amount.Valid = false
+			} else {
+				newKitchen.Amount.Valid = true
+			}
+			
 			_, err = db.Update(&newKitchen)
 		} else {
 			fmt.Println("Trying to insert into kitchen")
@@ -161,7 +164,7 @@ func initDb() *gorp.DbMap {
 	checkErr(err, "sql.Open failed")
 
 	// construct a gorp DbMap
-	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
 
 	// add a table, setting the table name to 'posts' and
 	// specifying that the Id property is an auto incrementing PK
