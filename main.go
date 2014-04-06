@@ -189,7 +189,7 @@ func main() {
 			}
 		}
 
-		r.Redirect("/", 300)
+		r.Redirect("/", 302)
 	})
 
 	// binding.Form = magic to bind a struct to elements from a form
@@ -238,7 +238,7 @@ func main() {
 			checkErr(err, "Inserting new kitchen item")
 		}
 
-		r.Redirect("/", 300)
+		r.Redirect("/", 302)
 	})
 	m.Run()
 }
