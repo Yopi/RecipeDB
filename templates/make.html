@@ -1,0 +1,53 @@
+<html>
+  <head>
+    <title>{{ .title }}</title>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+  <link href="jumbotron-narrow.css" rel="stylesheet">
+
+  </head>
+
+    <div class="container">
+      <div class="header">
+        <ul class="nav nav-pills pull-right">
+        <!-- Ingen meny -->
+        </ul>
+        <h2 class="text-muted">RecipeDB</h2>
+      </div>
+      <div class="row marketing">
+        <h1>{{ .create_recipes.recipe }}</h1>
+          {{ if gt (len .create_recipes.cannot) 0 }}
+            <h2>Cannot be made, you need</h2>
+            {{ range .create_recipes.cannot }}
+            <div class="row">
+              <div class="col-md-2">
+                <span float="right"><b>{{ .FoodName }}</b>:</span>
+              </div>
+              <div class="col-md-2">
+                {{ .Difference.Float64 }}
+              </div>
+            </div>
+            {{ end }}
+          {{ else if gt (len .create_recipes.maybe) 0 }}
+            <h2>Might be possible, check your kitchen for:</h2>
+            {{ range .create_recipes.maybe }}
+            <div class="row">
+              <div class="col-md-2">
+                <span float="right"><b>{{ .FoodName }}</b>:</span>
+              </div>
+              <div class="col-md-2">
+                {{ .RecipeAmount.Float64 }}
+              </div>
+            </div>
+            {{ end }}
+          {{ else }}
+            <h2>After making this your kitchen will contain:</h2>
+
+          {{ end }}
+      </div>
+    </div>
+  </body>
+</html>
