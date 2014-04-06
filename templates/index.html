@@ -6,41 +6,107 @@
 
 	<!-- Optional theme -->
 	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+  <link href="jumbotron-narrow.css" rel="stylesheet">
+
   </head>
 
-  <body style="margin: 20px;">
-  	<h1>All recipes ({{ len .recipes }})</h1>
-    {{range .recipes}}
-		<dl class="dl-horizontal">
-		  <dt>{{ .Name }}</dt>
-		  <dd>{{ .Type }} - {{ .Description }} <button type="button" class="btn btn-{{ .Possible }}">Make</button></dd>
-		</dl>
-    {{ end }}
+    <div class="container">
+      <div class="header">
+        <ul class="nav nav-pills pull-right">
+        <!-- Ingen meny -->
+        </ul>
+        <h2 class="text-muted">RecipeDB</h2>
+      </div>
+      <div class="row marketing">
+          <h3>All recipes ({{ len .recipes }})</h3>
+          {{range .recipes}}
+            <div class="row">
+              <div class="col-md-2">
+        		    <span float="right"><b>{{ .Name }}</b>:</span>
+              </div>
+              <div class="col-md-2">
+      		      {{ .Type }} - {{ .Description }} <br/><br/><br/>
+              </div>
+              <div class="col-md-6">
+                <button type="button" class="btn btn-{{ .Possible }}">Make</button>
+              </div>
+      		  </div>
+          {{ end }}
+          <hr>
+        	<h3>In your kitchen</h3>
+          {{range .kitchen}}
+            <div class="row">
+              <div class="col-md-2">
+                <span float="right"><b>{{ .Item }}</b>:</span>
+              </div>
+              <div class="col-md-2">
+      		  {{ if lt .Amount.Float64 0.0 }}
+      		  	Unknown Amount
+      		  {{ else }}
+      			  {{ .Amount.Float64 }} {{ .Unit }}
+      		  {{ end }}
+            </div>
+      		</div>
+          {{ end }}
 
-  	<h1>In your kitchen</h1>
-    {{range .kitchen}}
-		<dl class="dl-horizontal">
-		  <dt>{{ .Item }}</dt>
-		  {{ if lt .Amount.Float64 0.0 }}
-		  	<dd>Unknown Amount</dd>
-		  {{ else }}
-			<dd>{{ .Amount.Float64 }} {{ .Unit }}</dd>
-		  {{ end }}
-		</dl>
-    {{ end }}
+          <form class="form-horizontal" style="max-width: 600px">
+          <fieldset>
 
+          <!-- Form Name -->
+          <legend>Add items in your kitchen</legend>
 
-    <h1>Add some stuff to yo kitchen</h1>
-    <form action="/kitchen" method="POST" class="pure-form">
-      <input type="text" name="Item" placeholder="Item" />
-      <input type="text" name="Amount" placeholder="Amount" />
-      <select name="Unit">
-        <option value="piece">Piece</option>
-        <option value="litre">Litre</option>
-        <option value="gram">Gram</option>
-      </select>
-      <input type="checkbox" name="Unknown" value="true">Replace Unknown Amount 
-      <input type="submit" value="submit" />
-    </form>
+          <!-- Text input-->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="Item">Item</label>  
+            <div class="col-md-5">
+            <input id="Item" name="Item" type="text" placeholder="Item name" class="form-control input-md" required="">
+              
+            </div>
+          </div>
+
+          <!-- Text input-->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="Amount">Amount</label>  
+            <div class="col-md-5">
+            <input id="Amount" name="Amount" type="text" placeholder="Amount" class="form-control input-md">
+              
+            </div>
+          </div>
+
+          <!-- Select Basic -->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="Unit">Unit</label>
+            <div class="col-md-5">
+              <select id="Unit" name="Unit" class="form-control">
+                <option value="Gram">Gram</option>
+                <option value="Litre">Litre</option>
+                <option value="Piece">Piece</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Multiple Checkboxes (inline) -->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="Replace">Remove Unknown</label>
+            <div class="col-md-4">
+              <label class="checkbox-inline" for="Replace-0">
+                <input type="checkbox" name="Replace" id="Replace-0" value="Yes">
+                Yes
+              </label>
+            </div>
+          </div>
+
+          <!-- Button -->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="Submit"></label>
+            <div class="col-md-4">
+              <button id="Submit" name="Submit" class="btn btn-primary">Submit</button>
+            </div>
+          </div>
+          </fieldset>
+          </form>
+        </div>
+        </div>
+    </div>
   </body>
 </html>
