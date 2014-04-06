@@ -3,19 +3,26 @@ package main
 
 import (
 	"database/sql"
-	"github.com/go-martini/martini"
+	"github.com/codegangsta/martini"
 	"github.com/codegangsta/martini-contrib/binding"
 	"github.com/coopernurse/gorp"
 	"github.com/martini-contrib/render"
 	_"github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	_"strconv"
 	"fmt"
 )
 
 // Database
 type Kitchen struct {
 	Item   string 	`form:"Item"`
-	Amount float32 		`form:"Amount"`
+	Amount sql.NullFloat64 		`form:"Amount"`
+}
+
+type KitchenForm struct {
+	Item   string 	`form:"Item"`
+	Amount float64 `form:"Amount"`
+	Unit string `form:"Unit"`
 }
 
 type Food struct {
@@ -33,13 +40,13 @@ type Recipe struct {
 type RecipeIngredients struct {
 	Name 		string 	`form:"Item"`
 	FoodName 	string 	`form:"Amount1"`
-	Amount 		float32 	`form:"Amount"`
+	Amount 		sql.NullFloat64 	`form:"Amount"`
 }
 
 // Relations
 type KitchenContains struct {
 	Item   	string 	`form:"Item"`
-	Amount 	float32 		`form:"Amount"`
+	Amount 	sql.NullFloat64 		`form:"Amount"`
 	Unit	string 
 }
 
@@ -105,16 +112,42 @@ func main() {
 	})
 
 	// binding.Form = magic to bind a struct to elements from a form
-	m.Post("/kitchen", binding.Form(Kitchen{}), func(kitchen Kitchen, r render.Render, db *gorp.DbMap) {
-		var amount string
-		if kitchen.Amount == 0 {
-			amount = "NULL"
+	m.Post("/kitchen", binding.Form(KitchenForm{}), func(kitchen KitchenForm, r render.Render, db *gorp.DbMap) {
+		fmt.Println(kitchen)
+		var newKitchen Kitchen
+		newKitchen.Item = kitchen.Item
+		newKitchen.Amount.Float64 = kitchen.Amount
+		if kitchen.Amount == 0.0 {
+			//kitchen.Amount = nil
+			newKitchen.Amount.Valid = false
 		} else {
-			amount = Float.toString(kitchen.Amount)
+			newKitchen.Amount.Valid = true
+		}
+		err := db.SelectOne(&newKitchen, "SELECT * FROM kitchen WHERE Item = $1", newKitchen.Item)
+
+		// If item exists
+		if err == nil {
+			fmt.Println("Trying to update kitchen")
+			_, err = db.Update(&newKitchen)
+		} else {
+			fmt.Println("Trying to insert into kitchen")
+			// Check if food type exists
+			var food Food
+			err := db.SelectOne(&food, "SELECT * FROM food WHERE name = $1", newKitchen.Item)
+			fmt.Println(err)
+			if err == nil {
+				food.Name = newKitchen.Item
+				food.Unit = kitchen.Unit
+				err = db.Insert(&food)
+				fmt.Println(food)
+				fmt.Println(err)
+			}
+			_, err = db.Exec("INSERT INTO kitchen (Item, Amount) VALUES ($1, $2)", newKitchen.Item, newKitchen.Amount)
+			//err = db.Insert(&newKitchen)
+			fmt.Println(newKitchen)
+			fmt.Println(err)
 		}
 
-		_ = db.Exec("UPDATE kitchen SET Amount=Amount+? WHERE Item=?", amount, kitchen.Item)
-		_ = db.Exec("INSERT INTO kitchen (Item, Amount) VALUES (?, ?) WHERE (SELECT item FROM kitchen WHERE item=?) IS NULL", kitchen.Item, amount, kitchen.Item)
 		r.Redirect("/", 301)
 	})
 	m.Run()

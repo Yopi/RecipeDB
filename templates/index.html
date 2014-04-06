@@ -21,10 +21,10 @@
     {{range .kitchen}}
 		<dl class="dl-horizontal">
 		  <dt>{{ .Item }}</dt>
-		  {{ if lt .Amount 0.0 }}
+		  {{ if lt .Amount.Float64 0.0 }}
 		  	<dd>Unknown Amount</dd>
 		  {{ else }}
-			<dd>{{ .Amount }}{{ .Unit }}</dd>
+			<dd>{{ .Amount.Float64 }} {{ .Unit }}</dd>
 		  {{ end }}
 		</dl>
     {{ end }}
@@ -34,6 +34,11 @@
     <form action="/kitchen" method="POST" class="pure-form">
       <input type="text" name="Item" placeholder="Item" />
       <input type="text" name="Amount" placeholder="Amount" />
+      <select name="Unit">
+        <option value="piece">Piece</option>
+        <option value="litre">Litre</option>
+        <option value="gram">Gram</option>
+      </select>
       <input type="submit" value="submit" />
     </form>
   </body>
