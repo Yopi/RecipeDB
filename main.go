@@ -7,6 +7,7 @@ import (
 	"github.com/codegangsta/martini-contrib/binding"
 	"github.com/coopernurse/gorp"
 	"github.com/martini-contrib/render"
+	"net/http"
 	_"github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	_"strconv"
@@ -79,8 +80,11 @@ func main() {
 		var recipe_cant []Recipe // Where to save the DB SELECT
 		_, _ = db.Select(&recipe_cant, "SELECT recipe.name FROM recipe WHERE recipe.name IN (SELECT DISTINCT recipe_ingredients.name FROM recipe_ingredients LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL)) ")
 
+		// Link to all of them
+		var recipe_all string
 		for index, recipe := range recipes {
 			recipes[index].Possible = "no"
+			recipe_all = recipe_all + "recipe="+recipe.Name+"&"
 			fmt.Println(recipe)
 			for _, can := range recipe_can {
 				if recipe.Name == can.Name {
@@ -99,17 +103,16 @@ func main() {
 			}
 		}
 
-		data := map[string]interface{}{"title": "Receptdatabas", "recipes": recipes, "kitchen": kitchens}
+		data := map[string]interface{}{"title": "Receptdatabas", "recipes": recipes, "all_recipes": recipe_all, "kitchen": kitchens}
 		
 		// Response code, title of template, input for template
 		r.HTML(200, "index", data)
 	})
 
-	m.Get("/items", func(r render.Render, db *gorp.DbMap) {
-		var kitchens []Kitchen // Where to save the DB SELECT
-		_, _ = db.Select(&kitchens, "SELECT * FROM kitchen") // Query
-		data := map[string]interface{}{"title": "Hej", "body": "Här händer det mycket", "kitchen": kitchens}
-		r.HTML(200, "list", data)
+	m.Get("/make", func(r render.Render, req *http.Request, db *gorp.DbMap) {
+		recipes := req.URL.Query()["recipe"]
+		data := map[string]interface{}{"title": "Make a dish", "recipe": recipes}
+		r.HTML(200, "make", data)
 	})
 
 	// binding.Form = magic to bind a struct to elements from a form

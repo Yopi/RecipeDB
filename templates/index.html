@@ -28,10 +28,19 @@
       		      {{ .Type }} - {{ .Description }} <br/><br/><br/>
               </div>
               <div class="col-md-6">
-                <button type="button" class="btn btn-{{ .Possible }}">Make</button>
+                <a href="/make?recipe={{ .Name }}"><button type="button" class="btn btn-{{ .Possible }}">Make</button></a>
               </div>
       		  </div>
           {{ end }}
+            <div class="row">
+              <div class="col-md-2">
+                <span float="right"><b>All of them</b>:</span>
+              </div>
+              <div class="col-md-2"></div>
+              <div class="col-md-6">
+                <a href="/make?{{ html .all_recipes }}"><button type="button" class="btn btn-warning">Make</button></a>
+              </div>
+            </div>
           <hr>
         	<h3>In your kitchen</h3>
           {{range .kitchen}}
@@ -109,7 +118,7 @@
           </fieldset>
           </form>
         </div>
-        </div>
+      </div>
     </div>
   </body>
 </html>
