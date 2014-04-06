@@ -49,6 +49,7 @@ type RecipeIngredients struct {
 type RecipeMake struct {
 	Name 		string
 	FoodName 	string
+	Unit 		string
 	RecipeAmount sql.NullFloat64
 	KitchenAmount sql.NullFloat64
 	Difference sql.NullFloat64
@@ -132,22 +133,22 @@ func main() {
 			// Select all ingredients necessary for making each dish
 			// Get all ingredients we definitely can use
 			var ingredients_use []RecipeMake 
-			_, err := db.Select(&ingredients_use, "SELECT ri.name AS Name, ri.foodname AS FoodName, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
-				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname WHERE (ri.name=" + recipe +
+			_, err := db.Select(&ingredients_use, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
+				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname LEFT JOIN food ON food.name=ri.foodname WHERE (ri.name=" + recipe +
 				") AND (kitchen.amount - ri.amount) >= 0")
 			checkErr(err, "Selecting ingredients we can use")
 
 			// Get all ingredients we maybe can use
 			var ingredients_maybe []RecipeMake 
-			_, err = db.Select(&ingredients_maybe, "SELECT ri.name AS Name, ri.foodname AS FoodName, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
-				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname WHERE (ri.name=" + recipe +
+			_, err = db.Select(&ingredients_maybe, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
+				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname LEFT JOIN food ON food.name=ri.foodname WHERE (ri.name=" + recipe +
 				") AND kitchen.amount IS NULL")
 			checkErr(err, "Selecting ingredients we maybe can use")
 
 			// Get all ingredients we cannot use
 			var ingredients_not []RecipeMake 
-			_, err = db.Select(&ingredients_not, "SELECT ri.name AS Name, ri.foodname AS FoodName, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
-				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname WHERE (ri.name=" + recipe +
+			_, err = db.Select(&ingredients_not, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
+				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname LEFT JOIN food ON food.name=ri.foodname WHERE (ri.name=" + recipe +
 				") AND ((kitchen.amount - ri.amount) < 0 OR kitchen.item IS NULL)")
 			checkErr(err, "Selecting ingredients we cannot use")
 
@@ -158,6 +159,37 @@ func main() {
 		fmt.Println(ingredients)
 		data := map[string]interface{}{"title": "Make a dish", "recipe": recipes, "create_recipes": ingredients}
 		r.HTML(200, "make", data)
+	})
+
+	m.Get("/created", func(r render.Render, req *http.Request, db *gorp.DbMap) {
+		all_recipes := req.URL.Query().Get("recipe")
+		recipes := strings.Split(all_recipes, ", ")
+		recipe := "'" + strings.Join(recipes, "' OR ri.name='") + "'"
+
+		var ingredients []RecipeMake 
+		_, err := db.Select(&ingredients, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
+				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname " +
+				"LEFT JOIN food ON food.name=ri.foodname WHERE (ri.name=" + recipe +
+				")")
+		checkErr(err, "Selecting ingredients to remove from kitchen")
+
+		for _, ingredient := range ingredients {
+			// Nothing left in kitchen
+			if ingredient.Difference.Valid == false {
+				// Well? 
+			} else if ingredient.Difference.Float64 <= 0 {
+				db.Exec("DELETE FROM kitchen WHERE Item=$1", ingredient.FoodName)
+			} else {
+				var kitchenItem Kitchen
+				err = db.SelectOne(&kitchenItem, "SELECT * FROM kitchen WHERE Item=$1", ingredient.FoodName)
+				checkErr(err, "Select item from kitchen from ingredient")
+				kitchenItem.Amount = ingredient.Difference
+				_, err = db.Update(&kitchenItem)
+				checkErr(err, "Update amount in kitchen")
+			}
+		}
+
+		r.Redirect("/", 200)
 	})
 
 	// binding.Form = magic to bind a struct to elements from a form
@@ -206,7 +238,7 @@ func main() {
 			checkErr(err, "Inserting new kitchen item")
 		}
 
-		r.Redirect("/", 301)
+		r.Redirect("/", 200)
 	})
 	m.Run()
 }

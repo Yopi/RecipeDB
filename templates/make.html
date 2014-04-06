@@ -27,7 +27,7 @@
                 <span float="right"><b>{{ .FoodName }}</b>:</span>
               </div>
               <div class="col-md-2">
-                {{ .AbsDifference.Float64 }}
+                {{ .AbsDifference.Float64 }} {{ .Unit }}
               </div>
             </div>
             {{ end }}
@@ -39,7 +39,7 @@
                 <span float="right"><b>{{ .FoodName }}</b>:</span>
               </div>
               <div class="col-md-2">
-                {{ .RecipeAmount.Float64 }}
+                {{ .RecipeAmount.Float64 }} {{ .Unit }}
               </div>
             </div>
             {{ end }}
@@ -52,7 +52,7 @@
                 <span float="right"><b>{{ .FoodName }}</b>:</span>
               </div>
               <div class="col-md-2">
-                {{ .Difference.Float64 }}
+                {{ .Difference.Float64 }} {{ .Unit }}
               </div>
             </div>
             {{ end }}
@@ -64,11 +64,12 @@
                 <span float="right"><b>{{ .FoodName }}</b>:</span>
               </div>
               <div class="col-md-2">
-                0
+                0 {{ .Unit }}
               </div>
             </div>
             {{ end }}
             {{ end }}
+            <a href="/created?recipe={{ .create_recipes.recipe }}"><button type="button" class="btn btn-info">Make dish!</button></a>
           {{ end }}
       </div>
     </div>
