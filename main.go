@@ -3,7 +3,7 @@ package main
 
 import (
 	"database/sql"
-	"github.com/codegangsta/martini"
+	"github.com/go-martini/martini"
 	"github.com/codegangsta/martini-contrib/binding"
 	"github.com/coopernurse/gorp"
 	"github.com/martini-contrib/render"
