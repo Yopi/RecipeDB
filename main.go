@@ -128,7 +128,6 @@ func main() {
 		//create_recipes := make([]map[string]interface{}, len(recipes))
 //		for i, recipe := range recipes {
 		recipe := "'" + strings.Join(recipes, "' OR ri.name='") + "'"
-		fmt.Println(recipe)
 		recipeNames := strings.Join(recipes,", ")
 			// Select all ingredients necessary for making each dish
 			// Get all ingredients we definitely can use
@@ -194,7 +193,6 @@ func main() {
 
 	// binding.Form = magic to bind a struct to elements from a form
 	m.Post("/kitchen", binding.Form(KitchenForm{}), func(kitchen KitchenForm, r render.Render, db *gorp.DbMap) {
-		fmt.Println(kitchen)
 		var newKitchen Kitchen
 		err := db.SelectOne(&newKitchen, "SELECT * FROM kitchen WHERE Item = $1", kitchen.Item)
 		
