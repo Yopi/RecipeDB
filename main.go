@@ -155,7 +155,6 @@ func main() {
 			ingredients := map[string]interface{}{"recipe": recipeNames, "can": ingredients_use, "maybe": ingredients_maybe, "cannot": ingredients_not}
 			//create_recipes[i] = ingredients
 //		}
-		fmt.Println(ingredients)
 		data := map[string]interface{}{"title": "Make a dish", "recipe": recipes, "create_recipes": ingredients}
 		r.HTML(200, "make", data)
 	})
