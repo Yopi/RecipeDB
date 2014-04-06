@@ -48,12 +48,14 @@
             </div>
       		</div>
           {{ end }}
+          <hr>
 
-          <form class="form-horizontal" style="max-width: 600px">
+
+          <form class="form-horizontal" style="max-width: 600px" action="/kitchen" method="post">
           <fieldset>
 
           <!-- Form Name -->
-          <legend>Add items in your kitchen</legend>
+          <h3>Add items in your kitchen</h3>
 
           <!-- Text input-->
           <div class="form-group">
@@ -82,15 +84,16 @@
                 <option value="Litre">Litre</option>
                 <option value="Piece">Piece</option>
               </select>
+              <p class="help-block">Only required for new items</p>
             </div>
           </div>
 
           <!-- Multiple Checkboxes (inline) -->
           <div class="form-group">
-            <label class="col-md-4 control-label" for="Replace">Remove Unknown</label>
+            <label class="col-md-4 control-label" for="Unknown">Remove Unknown</label>
             <div class="col-md-4">
-              <label class="checkbox-inline" for="Replace-0">
-                <input type="checkbox" name="Replace" id="Replace-0" value="Yes">
+              <label class="checkbox-inline" for="Unknown-0">
+                <input type="checkbox" name="Unknown" id="Unknown-0" value="true">
                 Yes
               </label>
             </div>

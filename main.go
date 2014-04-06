@@ -116,11 +116,9 @@ func main() {
 	m.Post("/kitchen", binding.Form(KitchenForm{}), func(kitchen KitchenForm, r render.Render, db *gorp.DbMap) {
 		fmt.Println(kitchen)
 		var newKitchen Kitchen
-		newKitchen.Item = kitchen.Item
-		newKitchen.Amount.Float64 = kitchen.Amount
-		
 		err := db.SelectOne(&newKitchen, "SELECT * FROM kitchen WHERE Item = $1", newKitchen.Item)
-
+		
+		// Update new kitchen's amount from what is already in db
 		// If item exists
 		if err == nil {
 			fmt.Println("Trying to update kitchen")
@@ -130,25 +128,34 @@ func main() {
 			} else {
 				newKitchen.Amount.Valid = true
 			}
-			
+
 			_, err = db.Update(&newKitchen)
+			checkErr(err, "Updating kitchen item")
 		} else {
 			fmt.Println("Trying to insert into kitchen")
 			// Check if food type exists
 			var food Food
 			err := db.SelectOne(&food, "SELECT * FROM food WHERE name = $1", newKitchen.Item)
 			fmt.Println(err)
-			if err == nil {
+
+
+			newKitchen.Item = kitchen.Item
+			newKitchen.Amount.Float64 = kitchen.Amount
+			newKitchen.Amount.Valid = true
+			if kitchen.Amount == 0.0 {
+				newKitchen.Amount.Valid = false
+			}
+
+			if err != nil {
 				food.Name = newKitchen.Item
 				food.Unit = kitchen.Unit
 				err = db.Insert(&food)
 				fmt.Println(food)
 				fmt.Println(err)
 			}
-			_, err = db.Exec("INSERT INTO kitchen (Item, Amount) VALUES ($1, $2)", newKitchen.Item, newKitchen.Amount)
-			//err = db.Insert(&newKitchen)
-			fmt.Println(newKitchen)
-			fmt.Println(err)
+
+			err = db.Insert(&newKitchen)
+			checkErr(err, "Inserting new kitchen item")
 		}
 
 		r.Redirect("/", 301)
