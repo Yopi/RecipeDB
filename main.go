@@ -170,7 +170,7 @@ func main() {
 func initDb() *gorp.DbMap {
 	// connect to db using standard Go database/sql API
 	// use whatever database/sql driver you wish
-	db, err := sql.Open("postgres", "user=joppe dbname=lab2 sslmode=disable")
+	db, err := sql.Open("postgres", "user=nisse password=nisse dbname=lab2 sslmode=disable")
 	checkErr(err, "sql.Open failed")
 
 	// construct a gorp DbMap
