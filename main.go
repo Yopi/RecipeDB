@@ -17,20 +17,20 @@ import (
 
 // Database
 type Kitchen struct {
-	Item   string 	`form:"Item"`
-	Amount sql.NullFloat64 		`form:"Amount"`
+	Item   string
+	Amount sql.NullFloat64
 }
 
 type KitchenForm struct {
-	Item   string 	`form:"Item"`
-	Amount float64 `form:"Amount"`
-	Unit string `form:"Unit"`
-	Unknown string `form:"Unknown"`
+	Item   string 		`form:"Item"`
+	Amount float64 		`form:"Amount"`
+	Unit string 		`form:"Unit"`
+	Unknown string 		`form:"Unknown"`
 }
 
 type Food struct {
-	Name string 	`form:"Item"`
-	Unit string 	`form:"Amount"`
+	Name string
+	Unit string
 }
 
 type Recipe struct {
@@ -41,9 +41,9 @@ type Recipe struct {
 }
 
 type RecipeIngredients struct {
-	Name 		string 			`form:"Item"`
-	FoodName 	string 			`form:"Amount1"`
-	Amount 		sql.NullFloat64 `form:"Amount"`
+	Name 		string
+	FoodName 	string
+	Amount 		sql.NullFloat64
 }
 
 type RecipeMake struct {
@@ -59,8 +59,8 @@ type RecipeMake struct {
 
 // Relations
 type KitchenContains struct {
-	Item   	string 	`form:"Item"`
-	Amount 	sql.NullFloat64 		`form:"Amount"`
+	Item   	string
+	Amount 	sql.NullFloat64
 	Unit	string 
 }
 
