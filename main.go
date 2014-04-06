@@ -52,6 +52,8 @@ type RecipeMake struct {
 	RecipeAmount sql.NullFloat64
 	KitchenAmount sql.NullFloat64
 	Difference sql.NullFloat64
+	AbsDifference sql.NullFloat64
+
 }
 
 // Relations
@@ -130,21 +132,21 @@ func main() {
 			// Select all ingredients necessary for making each dish
 			// Get all ingredients we definitely can use
 			var ingredients_use []RecipeMake 
-			_, err := db.Select(&ingredients_use, "SELECT ri.name AS Name, ri.foodname AS FoodName, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS Difference" +
+			_, err := db.Select(&ingredients_use, "SELECT ri.name AS Name, ri.foodname AS FoodName, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
 				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname WHERE (ri.name=" + recipe +
 				") AND (kitchen.amount - ri.amount) >= 0")
 			checkErr(err, "Selecting ingredients we can use")
 
 			// Get all ingredients we maybe can use
 			var ingredients_maybe []RecipeMake 
-			_, err = db.Select(&ingredients_maybe, "SELECT ri.name AS Name, ri.foodname AS FoodName, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS Difference" +
+			_, err = db.Select(&ingredients_maybe, "SELECT ri.name AS Name, ri.foodname AS FoodName, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
 				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname WHERE (ri.name=" + recipe +
 				") AND kitchen.amount IS NULL")
 			checkErr(err, "Selecting ingredients we maybe can use")
 
 			// Get all ingredients we cannot use
 			var ingredients_not []RecipeMake 
-			_, err = db.Select(&ingredients_not, "SELECT ri.name AS Name, ri.foodname AS FoodName, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS Difference" +
+			_, err = db.Select(&ingredients_not, "SELECT ri.name AS Name, ri.foodname AS FoodName, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
 				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname WHERE (ri.name=" + recipe +
 				") AND ((kitchen.amount - ri.amount) < 0 OR kitchen.item IS NULL)")
 			checkErr(err, "Selecting ingredients we cannot use")

@@ -27,7 +27,7 @@
                 <span float="right"><b>{{ .FoodName }}</b>:</span>
               </div>
               <div class="col-md-2">
-                {{ .Difference.Float64 }}
+                {{ .AbsDifference.Float64 }}
               </div>
             </div>
             {{ end }}
@@ -43,9 +43,32 @@
               </div>
             </div>
             {{ end }}
-          {{ else }}
+          {{ end }}
+          {{ if eq (len .create_recipes.cannot) 0 }}
             <h2>After making this your kitchen will contain:</h2>
-
+            {{ range .create_recipes.can }}
+            <div class="row">
+              <div class="col-md-2">
+                <span float="right"><b>{{ .FoodName }}</b>:</span>
+              </div>
+              <div class="col-md-2">
+                {{ .Difference.Float64 }}
+              </div>
+            </div>
+            {{ end }}
+            {{ if gt (len .create_recipes.maybe) 0 }}
+            <i>and probably</i>
+            {{ range .create_recipes.maybe }}
+            <div class="row">
+              <div class="col-md-2">
+                <span float="right"><b>{{ .FoodName }}</b>:</span>
+              </div>
+              <div class="col-md-2">
+                0
+              </div>
+            </div>
+            {{ end }}
+            {{ end }}
           {{ end }}
       </div>
     </div>
