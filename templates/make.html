@@ -2,10 +2,10 @@
   <head>
     <title>{{ .title }}</title>
 	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+	<link rel="stylesheet" href="bootstrap.min.css">
 
 	<!-- Optional theme -->
-	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+	<link rel="stylesheet" href="bootstrap-theme.min.css">
   <link href="jumbotron-narrow.css" rel="stylesheet">
 
   </head>
@@ -20,14 +20,14 @@
       <div class="row marketing">
         <h1>{{ .create_recipes.recipe }}</h1>
           {{ if gt (len .create_recipes.cannot) 0 }}
-            <h2>Cannot be made, you need</h2>
-            {{ range .create_recipes.cannot }}
+            <h2>Cannot be made, you need (Shopping list)</h2>
+            {{ range .create_recipes.required }}
             <div class="row">
               <div class="col-md-2">
                 <span float="right"><b>{{ .FoodName }}</b>:</span>
               </div>
               <div class="col-md-2">
-                {{ .AbsDifference.Float64 }} {{ .Unit }}
+                {{ .RecipeAmount.Float64 }} {{ .Unit }}
               </div>
             </div>
             {{ end }}

@@ -2,11 +2,12 @@
   <head>
     <title>{{ .title }}</title>
 	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="bootstrap.min.css">
 
-	<!-- Optional theme -->
-	<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap-theme.min.css">
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="bootstrap-theme.min.css">
   <link href="jumbotron-narrow.css" rel="stylesheet">
+
 
   </head>
 
@@ -21,23 +22,23 @@
           <h3>All recipes ({{ len .recipes }})</h3>
           {{range .recipes}}
             <div class="row">
-              <div class="col-md-2">
-        		    <span float="right"><b>{{ .Name }}</b>:</span>
+              <div class="col-md-4">
+        		    <span style="float:right; text-align:right"><b>{{ .Name }}</b>:</span>
               </div>
-              <div class="col-md-2">
+              <div class="col-md-4">
       		      {{ .Type }} - {{ .Description }} <br/><br/><br/>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <a href="/make?recipe={{ .Name }}"><button type="button" class="btn btn-{{ .Possible }}">Make</button></a>
               </div>
       		  </div>
           {{ end }}
             <div class="row">
-              <div class="col-md-2">
-                <span float="right"><b>All of them</b>:</span>
+              <div class="col-md-4">
+                <span style="float:right; text-align:right"><b>All of them</b>:</span>
               </div>
-              <div class="col-md-2"></div>
-              <div class="col-md-6">
+              <div class="col-md-4"></div>
+              <div class="col-md-4">
                 <a href="/make?{{ html .all_recipes }}"><button type="button" class="btn btn-warning">Make</button></a>
               </div>
             </div>
@@ -45,10 +46,10 @@
         	<h3>In your kitchen</h3>
           {{range .kitchen}}
             <div class="row">
-              <div class="col-md-2">
-                <span float="right"><b>{{ .Item }}</b>:</span>
+              <div class="col-md-3 col-md-offset-3">
+                <span style="float:right; text-align:right"><b>{{ .Item }}</b>:</span>
               </div>
-              <div class="col-md-2">
+              <div class="col-md-6">
       		  {{ if lt .Amount.Float64 0.0 }}
       		  	Unknown Amount
       		  {{ else }}
@@ -60,7 +61,7 @@
           <hr>
 
 
-          <form class="form-horizontal" style="max-width: 600px" action="/kitchen" method="post">
+          <form class="form-horizontal" action="/kitchen" method="post">
           <fieldset>
 
           <!-- Form Name -->

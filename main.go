@@ -132,27 +132,58 @@ func main() {
 			// Select all ingredients necessary for making each dish
 			// Get all ingredients we definitely can use
 			var ingredients_use []RecipeMake 
-			_, err := db.Select(&ingredients_use, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
-				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname LEFT JOIN food ON food.name=ri.foodname WHERE (ri.name=" + recipe +
-				") AND (kitchen.amount - ri.amount) >= 0")
+			_, err := db.Select(&ingredients_use, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, "+
+													"ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, "+
+													"(kitchen.amount - ri.amount) AS Difference, "+
+													"COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference " +
+													"FROM recipe_ingredients AS ri "+
+													"LEFT JOIN kitchen ON kitchen.item=ri.foodname "+
+													"LEFT JOIN food ON food.name=ri.foodname "+
+													"WHERE (ri.name=" + recipe + ") AND (kitchen.amount - ri.amount) >= 0")
 			checkErr(err, "Selecting ingredients we can use")
 
 			// Get all ingredients we maybe can use
 			var ingredients_maybe []RecipeMake 
-			_, err = db.Select(&ingredients_maybe, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
-				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname LEFT JOIN food ON food.name=ri.foodname WHERE (ri.name=" + recipe +
-				") AND kitchen.amount IS NULL")
+			_, err = db.Select(&ingredients_maybe, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, "+
+													"ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, "+
+													"(kitchen.amount - ri.amount) AS Difference, "+
+													"COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
+													" FROM recipe_ingredients AS ri "+
+													"LEFT JOIN kitchen ON kitchen.item=ri.foodname "+
+													"LEFT JOIN food ON food.name=ri.foodname "+
+													"WHERE (ri.name=" + recipe + ") AND kitchen.amount IS NULL")
 			checkErr(err, "Selecting ingredients we maybe can use")
 
 			// Get all ingredients we cannot use
 			var ingredients_not []RecipeMake 
-			_, err = db.Select(&ingredients_not, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
-				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname LEFT JOIN food ON food.name=ri.foodname WHERE (ri.name=" + recipe +
-				") AND ((kitchen.amount - ri.amount) < 0 OR kitchen.item IS NULL)")
+			_, err = db.Select(&ingredients_not, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, "+
+												 "ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, "+
+												 "(kitchen.amount - ri.amount) AS Difference, "+
+												 "COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference " +
+												 "FROM recipe_ingredients AS ri "+
+												 "LEFT JOIN kitchen ON kitchen.item=ri.foodname "+
+												 "LEFT JOIN food ON food.name=ri.foodname "+
+												 "WHERE (ri.name=" + recipe +") AND "+
+												 "((kitchen.amount - ri.amount) < 0 OR kitchen.item IS NULL)")
 			checkErr(err, "Selecting ingredients we cannot use")
 
+			// Get grouped result
+			var ingredients_required []RecipeMake
+			if len(ingredients_not) > 0 {
+				_, err = db.Select(&ingredients_required, "SELECT ri.foodname AS FoodName, "+
+														"COALESCE(food.unit, 'Unknown Unit') AS Unit, "+
+														"SUM(ri.amount) AS RecipeAmount " +
+														"FROM recipe_ingredients AS ri "+
+														"LEFT JOIN kitchen ON kitchen.item=ri.foodname "+
+														"LEFT JOIN food ON food.name=ri.foodname "+
+														"WHERE (ri.name=" + recipe +") AND ((kitchen.amount - ri.amount) < 0 OR kitchen.item IS NULL) "+
+														"GROUP BY ri.foodname, food.unit ")
+				checkErr(err, "Selecting the required ingredients (shopping list)")
+			}
 
-			ingredients := map[string]interface{}{"recipe": recipeNames, "can": ingredients_use, "maybe": ingredients_maybe, "cannot": ingredients_not}
+
+			ingredients := map[string]interface{}{"recipe": recipeNames, "can": ingredients_use, "maybe": ingredients_maybe, "cannot": ingredients_not, "required": ingredients_required}
+			fmt.Println(ingredients)
 			//create_recipes[i] = ingredients
 //		}
 		data := map[string]interface{}{"title": "Make a dish", "recipe": recipes, "create_recipes": ingredients}
