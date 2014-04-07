@@ -21,12 +21,12 @@
         <h1>{{ .create_recipes.recipe }}</h1>
           {{ if gt (len .create_recipes.cannot) 0 }}
             <h2>Cannot be made, you need (Shopping list)</h2>
-            {{ range .create_recipes.required }}
+            {{ range .create_recipes.cannot }}
             <div class="row">
-              <div class="col-md-2">
-                <span float="right"><b>{{ .FoodName }}</b>:</span>
+              <div class="col-md-6">
+                <span style="float:right; text-align:right"><b>{{ .FoodName }}</b>:</span>
               </div>
-              <div class="col-md-2">
+              <div class="col-md-6">
                 {{ .RecipeAmount.Float64 }} {{ .Unit }}
               </div>
             </div>
@@ -35,39 +35,28 @@
             <h2>Might be possible, check your kitchen for:</h2>
             {{ range .create_recipes.maybe }}
             <div class="row">
-              <div class="col-md-2">
-                <span float="right"><b>{{ .FoodName }}</b>:</span>
+              <div class="col-md-6">
+                <span style="float:right; text-align:right"><b>{{ .FoodName }}</b>:</span>
               </div>
-              <div class="col-md-2">
+              <div class="col-md-6">
                 {{ .RecipeAmount.Float64 }} {{ .Unit }}
               </div>
             </div>
             {{ end }}
           {{ end }}
           {{ if eq (len .create_recipes.cannot) 0 }}
-            <h2>After making this your kitchen will contain:</h2>
+            <h3>After making this your kitchen will
+            {{ if gt (len .create_recipes.maybe) 0 }} (probably) {{ end }}
+             contain:</h3>
             {{ range .create_recipes.can }}
             <div class="row">
-              <div class="col-md-2">
-                <span float="right"><b>{{ .FoodName }}</b>:</span>
+              <div class="col-md-6">
+                <span style="float:right; text-align:right"><b>{{ .FoodName }}</b>:</span>
               </div>
-              <div class="col-md-2">
+              <div class="col-md-6">
                 {{ .Difference.Float64 }} {{ .Unit }}
               </div>
             </div>
-            {{ end }}
-            {{ if gt (len .create_recipes.maybe) 0 }}
-            <i>and probably</i>
-            {{ range .create_recipes.maybe }}
-            <div class="row">
-              <div class="col-md-2">
-                <span float="right"><b>{{ .FoodName }}</b>:</span>
-              </div>
-              <div class="col-md-2">
-                0 {{ .Unit }}
-              </div>
-            </div>
-            {{ end }}
             {{ end }}
             <a href="/created?recipe={{ .create_recipes.recipe }}"><button type="button" class="btn btn-info">Make dish!</button></a>
           {{ end }}

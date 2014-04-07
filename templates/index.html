@@ -19,6 +19,7 @@
         <h2 class="text-muted">RecipeDB</h2>
       </div>
       <div class="row marketing">
+        <form method="get" action="/make" >
           <h3>All recipes ({{ len .recipes }})</h3>
           {{range .recipes}}
             <div class="row">
@@ -28,20 +29,24 @@
               <div class="col-md-4">
       		      {{ .Type }} - {{ .Description }} <br/><br/><br/>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-3">
                 <a href="/make?recipe={{ .Name }}"><button type="button" class="btn btn-{{ .Possible }}">Make</button></a>
+              </div>
+              <div class="col-md-1">
+                <input type="checkbox" name="recipe" value="{{ .Name }}">
               </div>
       		  </div>
           {{ end }}
             <div class="row">
               <div class="col-md-4">
-                <span style="float:right; text-align:right"><b>All of them</b>:</span>
+                <!--<span style="float:right; text-align:right"><b>All of them</b>:</span>-->
               </div>
               <div class="col-md-4"></div>
               <div class="col-md-4">
-                <a href="/make?{{ html .all_recipes }}"><button type="button" class="btn btn-warning">Make</button></a>
+                <button class="btn btn-warning">Make checked</button>
               </div>
             </div>
+        </form>
           <hr>
         	<h3>In your kitchen</h3>
           {{range .kitchen}}
@@ -118,6 +123,57 @@
           </div>
           </fieldset>
           </form>
+
+
+          <form class="form-horizontal" action="/kitchen_remove" method="post">
+          <fieldset>
+          <!-- Form Name -->
+          <h3>Remove item from your kitchen</h3>
+
+          
+          <!-- Select Basic -->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="Unit">Item</label>
+            <div class="col-md-5">
+              <select id="Item-r" name="Item" class="form-control">
+                {{range .kitchen }}
+                  <option value="{{ .Item }}">{{ .Item }}</option>
+                {{ end }}
+              </select>
+            </div>
+          </div>
+
+          <!-- Text input-->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="Amount">Amount</label>  
+            <div class="col-md-5">
+            <input id="Amount-r" name="Amount" type="text" placeholder="Amount" class="form-control input-md">
+              
+            </div>
+          </div>
+
+
+          <!-- Multiple Checkboxes (inline) -->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="Unknown-r">Remove item</label>
+            <div class="col-md-4">
+              <label class="checkbox-inline" for="Unknown-r">
+                <input type="checkbox" name="Unknown" id="Unknown-r" value="true">
+                Yes
+              </label>
+            </div>
+          </div>
+
+          <!-- Button -->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="Submit"></label>
+            <div class="col-md-4">
+              <button id="Submit" name="Submit" class="btn btn-primary">Submit</button>
+            </div>
+          </div>
+          </fieldset>
+          </form>
+
         </div>
       </div>
     </div>

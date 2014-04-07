@@ -3,15 +3,15 @@ package main
 
 import (
 	"database/sql"
-	"github.com/go-martini/martini"
+	"fmt"
 	"github.com/coopernurse/gorp"
+	"github.com/go-martini/martini"
+	_ "github.com/lib/pq"
 	"github.com/martini-contrib/binding"
 	"github.com/martini-contrib/render"
-	"net/http"
-	_"github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	_"strconv"
-	"fmt"
+	"net/http"
+	_ "strconv"
 	"strings"
 )
 
@@ -22,10 +22,10 @@ type Kitchen struct {
 }
 
 type KitchenForm struct {
-	Item   string 		`form:"Item"`
-	Amount float64 		`form:"Amount"`
-	Unit string 		`form:"Unit"`
-	Unknown string 		`form:"Unknown"`
+	Item    string  `form:"Item"`
+	Amount  float64 `form:"Amount"`
+	Unit    string  `form:"Unit"`
+	Unknown string  `form:"Unknown"`
 }
 
 type Food struct {
@@ -34,37 +34,34 @@ type Food struct {
 }
 
 type Recipe struct {
-	Name 		string 	`form:"Item"`
-	Type 		string 	`form:"Type"`
-	Description string 	`form:"Description"`
-	Possible	string
+	Name        string `form:"Item"`
+	Type        string `form:"Type"`
+	Description string `form:"Description"`
+	Possible    string
 }
 
 type RecipeIngredients struct {
-	Name 		string
-	FoodName 	string
-	Amount 		sql.NullFloat64
+	Name     string
+	FoodName string
+	Amount   sql.NullFloat64
 }
 
 type RecipeMake struct {
-	Name 		string
-	FoodName 	string
-	Unit 		string
-	RecipeAmount sql.NullFloat64
+	Name          string
+	FoodName      string
+	Unit          string
+	RecipeAmount  sql.NullFloat64
 	KitchenAmount sql.NullFloat64
-	Difference sql.NullFloat64
+	Difference    sql.NullFloat64
 	AbsDifference sql.NullFloat64
-
 }
 
 // Relations
 type KitchenContains struct {
-	Item   	string
-	Amount 	sql.NullFloat64
-	Unit	string 
+	Item   string
+	Amount sql.NullFloat64
+	Unit   string
 }
-
-
 
 func main() {
 	m := martini.Classic()
@@ -96,96 +93,96 @@ func main() {
 		var recipe_all string
 		for index, recipe := range recipes {
 			recipes[index].Possible = "no"
-			recipe_all = recipe_all + "recipe="+recipe.Name+"&"
+			recipe_all = recipe_all + "recipe=" + recipe.Name + "&"
 			fmt.Println(recipe)
 			for _, can := range recipe_can {
 				if recipe.Name == can.Name {
 					recipes[index].Possible = "success"
-				} 
+				}
 			}
 			for _, maybe := range recipe_maybe {
 				if recipe.Name == maybe.Name {
 					recipes[index].Possible = "warning"
-				} 
+				}
 			}
 			for _, cant := range recipe_cant {
 				if recipe.Name == cant.Name {
 					recipes[index].Possible = "danger"
-				} 
+				}
 			}
 		}
 
 		data := map[string]interface{}{"title": "Receptdatabas", "recipes": recipes, "all_recipes": recipe_all, "kitchen": kitchens}
-		
+
 		// Response code, title of template, input for template
 		r.HTML(200, "index", data)
 	})
 
 	m.Get("/make", func(r render.Render, req *http.Request, db *gorp.DbMap) {
 		recipes := req.URL.Query()["recipe"]
-
-
-		//create_recipes := make([]map[string]interface{}, len(recipes))
-//		for i, recipe := range recipes {
 		recipe := "'" + strings.Join(recipes, "' OR ri.name='") + "'"
-		recipeNames := strings.Join(recipes,", ")
-			// Select all ingredients necessary for making each dish
-			// Get all ingredients we definitely can use
-			var ingredients_use []RecipeMake 
-			_, err := db.Select(&ingredients_use, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, "+
-													"ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, "+
-													"(kitchen.amount - ri.amount) AS Difference, "+
-													"COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference " +
-													"FROM recipe_ingredients AS ri "+
-													"LEFT JOIN kitchen ON kitchen.item=ri.foodname "+
-													"LEFT JOIN food ON food.name=ri.foodname "+
-													"WHERE (ri.name=" + recipe + ") AND (kitchen.amount - ri.amount) >= 0")
-			checkErr(err, "Selecting ingredients we can use")
+		recipeNames := strings.Join(recipes, ", ")
+		// Select all ingredients necessary for making each dish
 
-			// Get all ingredients we maybe can use
-			var ingredients_maybe []RecipeMake 
-			_, err = db.Select(&ingredients_maybe, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, "+
-													"ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, "+
-													"(kitchen.amount - ri.amount) AS Difference, "+
-													"COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
-													" FROM recipe_ingredients AS ri "+
-													"LEFT JOIN kitchen ON kitchen.item=ri.foodname "+
-													"LEFT JOIN food ON food.name=ri.foodname "+
-													"WHERE (ri.name=" + recipe + ") AND kitchen.amount IS NULL")
-			checkErr(err, "Selecting ingredients we maybe can use")
+		// I try make stuff -Nisse
+		//Ingredients_needed for the making of chosen recipes
+		var ingredients_needed []RecipeMake
+		_, err := db.Select(&ingredients_needed, "SELECT ri.foodname AS FoodName, "+
+			"SUM(ri.amount) AS RecipeAmount, food.unit AS Unit FROM recipe_ingredients AS ri "+
+			"LEFT JOIN food ON food.name = ri.foodname "+
+			"WHERE (ri.name ="+recipe+") GROUP BY ri.foodname, food.unit")
+		fmt.Println("ingredients_needed, err: ", err)
+		//What is in the kitchen
+		fmt.Println("ingredients_needed: ", ingredients_needed)
+		var kitchen_contains []Kitchen
+		_, err = db.Select(&kitchen_contains, "SELECT * FROM kitchen")
+		fmt.Println("kitchen_contains: ", kitchen_contains)
 
-			// Get all ingredients we cannot use
-			var ingredients_not []RecipeMake 
-			_, err = db.Select(&ingredients_not, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, "+
-												 "ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, "+
-												 "(kitchen.amount - ri.amount) AS Difference, "+
-												 "COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference " +
-												 "FROM recipe_ingredients AS ri "+
-												 "LEFT JOIN kitchen ON kitchen.item=ri.foodname "+
-												 "LEFT JOIN food ON food.name=ri.foodname "+
-												 "WHERE (ri.name=" + recipe +") AND "+
-												 "((kitchen.amount - ri.amount) < 0 OR kitchen.item IS NULL)")
-			checkErr(err, "Selecting ingredients we cannot use")
+		//var ingredients_use_temp []RecipeMake
 
-			// Get grouped result
-			var ingredients_required []RecipeMake
-			if len(ingredients_not) > 0 {
-				_, err = db.Select(&ingredients_required, "SELECT ri.foodname AS FoodName, "+
-														"COALESCE(food.unit, 'Unknown Unit') AS Unit, "+
-														"SUM(ri.amount) AS RecipeAmount " +
-														"FROM recipe_ingredients AS ri "+
-														"LEFT JOIN kitchen ON kitchen.item=ri.foodname "+
-														"LEFT JOIN food ON food.name=ri.foodname "+
-														"WHERE (ri.name=" + recipe +") AND ((kitchen.amount - ri.amount) < 0 OR kitchen.item IS NULL) "+
-														"GROUP BY ri.foodname, food.unit ")
-				checkErr(err, "Selecting the required ingredients (shopping list)")
+		var ingredients_use []RecipeMake
+		var ingredients_maybe []RecipeMake
+		var ingredients_not []RecipeMake
+		var ingredients_required []RecipeMake
+		//test
+
+		//Lyckas sortera ingredienser över huruvida de finns i köket!
+		for _, v := range ingredients_needed {
+			fmt.Println("Iterating item: ", v.FoodName)
+			if strInKitchen(v.FoodName, kitchen_contains) {
+				//Elementet finns representerat i köket
+				fmt.Println(v.FoodName, " Was represented in the kitchen.")
+				amount_kitchen := amountInKitchen(v.FoodName, kitchen_contains)
+				if amount_kitchen.Valid == true && amount_kitchen.Float64 > 0 {
+					//Valid värde i köket.
+					fmt.Println(v.FoodName, " Has a valid amount.")
+					//Utför en kontroll hur värdet förhåller sig med receptet.
+					if amount_kitchen.Float64 >= v.RecipeAmount.Float64 {
+						//Ingrediensen finns i köket, amount valid, tillräcklig mängd.
+						//Lägg till elemetet i ingredients_use
+						v.Difference = sql.NullFloat64{Float64:(amount_kitchen.Float64 - v.RecipeAmount.Float64), Valid:true}
+						ingredients_use = append(ingredients_use, v)
+					} else { //Otillräcklig mängd i köket, behöver handla
+						//Lägg in i ingredients_not
+						ingredients_not = append(ingredients_not, v)
+					}
+				} else { //Null alternativt olämpligt värde köket.
+					fmt.Println(v.FoodName, " Has an unvalid amount.")
+					//Lägg till elementet i ingredients_maybe
+
+					ingredients_maybe = append(ingredients_maybe, v)
+				}
+			} else { //Elementet finns inte i köket över huvud. Kontroll om den finns i food?
+				fmt.Println(v.FoodName, " is not in the kitchen.")
+				//Lägg till elementet i ingredients_not
+				ingredients_not = append(ingredients_not, v)
 			}
+		}
 
-
-			ingredients := map[string]interface{}{"recipe": recipeNames, "can": ingredients_use, "maybe": ingredients_maybe, "cannot": ingredients_not, "required": ingredients_required}
-			fmt.Println(ingredients)
-			//create_recipes[i] = ingredients
-//		}
+		ingredients := map[string]interface{}{"recipe": recipeNames, "can": ingredients_use, "maybe": ingredients_maybe, "cannot": ingredients_not, "required": ingredients_required}
+		fmt.Println("ingredients: ", ingredients)
+		//create_recipes[i] = ingredients
+		//		}
 		data := map[string]interface{}{"title": "Make a dish", "recipe": recipes, "create_recipes": ingredients}
 		r.HTML(200, "make", data)
 	})
@@ -195,17 +192,17 @@ func main() {
 		recipes := strings.Split(all_recipes, ", ")
 		recipe := "'" + strings.Join(recipes, "' OR ri.name='") + "'"
 
-		var ingredients []RecipeMake 
-		_, err := db.Select(&ingredients, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference" +
-				" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname " +
-				"LEFT JOIN food ON food.name=ri.foodname WHERE (ri.name=" + recipe +
-				")")
+		var ingredients []RecipeMake
+		_, err := db.Select(&ingredients, "SELECT ri.name AS Name, ri.foodname AS FoodName, food.unit, ri.amount AS RecipeAmount, kitchen.amount AS KitchenAmount, (kitchen.amount - ri.amount) AS Difference, COALESCE(ABS(kitchen.amount - ri.amount), ri.amount) AS AbsDifference"+
+			" FROM recipe_ingredients AS ri LEFT JOIN kitchen ON kitchen.item=ri.foodname "+
+			"LEFT JOIN food ON food.name=ri.foodname WHERE (ri.name="+recipe+
+			")")
 		checkErr(err, "Selecting ingredients to remove from kitchen")
 
 		for _, ingredient := range ingredients {
 			// Nothing left in kitchen
 			if ingredient.Difference.Valid == false {
-				// Well? 
+				// Well?
 			} else if ingredient.Difference.Float64 <= 0 {
 				db.Exec("DELETE FROM kitchen WHERE Item=$1", ingredient.FoodName)
 			} else {
@@ -225,7 +222,7 @@ func main() {
 	m.Post("/kitchen", binding.Form(KitchenForm{}), func(kitchen KitchenForm, r render.Render, db *gorp.DbMap) {
 		var newKitchen Kitchen
 		err := db.SelectOne(&newKitchen, "SELECT * FROM kitchen WHERE Item = $1", kitchen.Item)
-		
+
 		// Update new kitchen's amount from what is already in db
 		// If item exists
 		if err == nil {
@@ -245,7 +242,6 @@ func main() {
 			var food Food
 			err := db.SelectOne(&food, "SELECT * FROM food WHERE name = $1", newKitchen.Item)
 			fmt.Println(err)
-
 
 			newKitchen.Item = kitchen.Item
 			newKitchen.Amount.Float64 = kitchen.Amount
@@ -268,6 +264,52 @@ func main() {
 
 		r.Redirect("/", 302)
 	})
+
+	m.Post("/kitchen_remove", binding.Form(KitchenForm{}), func(kitchen KitchenForm, r render.Render, db *gorp.DbMap) {
+		fmt.Println(kitchen)
+		var newKitchen Kitchen
+		err := db.SelectOne(&newKitchen, "SELECT * FROM kitchen WHERE kitchen.Item = $1", kitchen.Item)
+		//fmt.Println(kitchen.Item)
+		//fmt.Println("kitchen.unknown: ",kitchen.Unknown)
+
+		// Update new kitchen's amount from what is already in db
+		// If item exists
+		//fmt.Println("Initializing remove item.")
+		if err == nil {
+			//fmt.Println("Trying to update kitchen")
+			if newKitchen.Amount.Valid == true { //Not null in database
+				//fmt.Println("Not null in database, desayd wether to subtract or delete.")
+				newKitchen.Amount.Float64 = newKitchen.Amount.Float64 - kitchen.Amount
+				if newKitchen.Amount.Float64 > 0 && kitchen.Unknown != "true" { //Still positive, and user do not want to delete.
+					//update the element
+
+					//fmt.Println("Kitchen is updating, new valid value.")
+					_, err = db.Update(&newKitchen)
+
+				} else { //Not positive, alternaly, it is set to null.
+					// Remove the element
+					fmt.Println("")
+					_, err = db.Delete(&newKitchen)
+				}
+
+			} else if kitchen.Unknown == "true" { //Null in the database (previous value) && the user wants to remove it.
+				//fmt.Println("Null in database and user wants to remove it")
+				_, err = db.Delete(&newKitchen)
+			} else { //Null in the database, user doesn't want to remove it.
+				//Do nothing.
+				//fmt.Println("Do nothing. Amount added from null.")
+
+			}
+
+		} else { //if item doesn't exist
+			//Do nothing. Remove what doesn't exist?
+			//fmt.Println("Item doesn't exist, nil from database.")
+			//fmt.Println(err)
+		}
+
+		r.Redirect("/", 301)
+	})
+
 	m.Run()
 }
 
@@ -303,7 +345,27 @@ func checkErr(err error, msg string) {
 	}
 }
 
-// Database middleware
+func strInKitchen(str string, kitchen []Kitchen) bool {
+	for _, b := range kitchen {
+		if str == b.Item {
+			return true
+		}
+	}
+	return false
+}
+
+//Control if an item (string) is represented in a Kitchen-struct.
+//Makes the assumption that if the item is in the Kitchen, then it is in the database Food.
+//Don't kow what that might lead to.
+func amountInKitchen(item string, kitchen []Kitchen) sql.NullFloat64 {
+	for _, b := range kitchen {
+		if item == b.Item {
+			return b.Amount
+		}
+	}
+	return sql.NullFloat64{Float64:0,Valid:false}
+}
+
 func dbHandler() martini.Handler {
 	// Return a martini.Handler to be called for every request
 	return func(c martini.Context) {
