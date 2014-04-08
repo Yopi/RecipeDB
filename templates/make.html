@@ -27,10 +27,23 @@
                 <span style="float:right; text-align:right"><b>{{ .FoodName }}</b>:</span>
               </div>
               <div class="col-md-6">
+                {{ .AbsDifference.Float64 }} {{ .Unit }}
+              </div>
+            </div>
+            {{ end }}
+            {{ if gt (len .create_recipes.maybe) 0 }}
+            <h2>Also check your kitchen for:</h2>
+            {{ range .create_recipes.maybe }}
+            <div class="row">
+              <div class="col-md-6">
+                <span style="float:right; text-align:right"><b>{{ .FoodName }}</b>:</span>
+              </div>
+              <div class="col-md-6">
                 {{ .RecipeAmount.Float64 }} {{ .Unit }}
               </div>
             </div>
             {{ end }}
+          {{ end }}
           {{ else if gt (len .create_recipes.maybe) 0 }}
             <h2>Might be possible, check your kitchen for:</h2>
             {{ range .create_recipes.maybe }}

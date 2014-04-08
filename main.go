@@ -13,6 +13,7 @@ import (
 	"net/http"
 	_ "strconv"
 	"strings"
+	"math"
 )
 
 // Database
@@ -91,6 +92,7 @@ func main() {
 											"WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL) "+
 											"OR kitchen.amount IS NULL "+
 										")")
+
 		_, _ = db.Select(&recipe_maybe, "SELECT recipe.name FROM recipe "+
 										"WHERE recipe.name NOT IN ("+
 											"SELECT DISTINCT recipe_ingredients.name "+
@@ -104,8 +106,8 @@ func main() {
 											"SELECT DISTINCT recipe_ingredients.name FROM recipe_ingredients "+
 											"LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname "+
 											"WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL) "+
-											"OR kitchen.amount IS NULL
-										)")
+											"OR kitchen.amount IS NULL "+
+										")")
 
 		_, _ = db.Select(&recipe_cant, "SELECT recipe.name FROM recipe "+
 										"WHERE recipe.name IN ("+
@@ -114,7 +116,6 @@ func main() {
 											"WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL)"+
 										") ")
 
-		// Link to all of them
 		var recipe_all string
 		for index, recipe := range recipes {
 			recipes[index].Possible = "no"
@@ -147,15 +148,16 @@ func main() {
 		recipes := req.URL.Query()["recipe"]
 		recipe := "'" + strings.Join(recipes, "' OR ri.name='") + "'"
 		recipeNames := strings.Join(recipes, ", ")
-		// Select all ingredients necessary for making each dish
 
 		// I try make stuff -Nisse
 		//Ingredients_needed for the making of chosen recipes
+		// Select all ingredients necessary for making each dish
 		var ingredients_needed []RecipeMake
 		_, err := db.Select(&ingredients_needed, "SELECT ri.foodname AS FoodName, "+
-			"SUM(ri.amount) AS RecipeAmount, food.unit AS Unit FROM recipe_ingredients AS ri "+
-			"LEFT JOIN food ON food.name = ri.foodname "+
-			"WHERE (ri.name ="+recipe+") GROUP BY ri.foodname, food.unit")
+													"SUM(ri.amount) AS RecipeAmount, food.unit AS Unit "+
+													"FROM recipe_ingredients AS ri "+
+													"LEFT JOIN food ON food.name = ri.foodname "+
+													"WHERE (ri.name ="+recipe+") GROUP BY ri.foodname, food.unit")
 		fmt.Println("ingredients_needed, err: ", err)
 		//What is in the kitchen
 		fmt.Println("ingredients_needed: ", ingredients_needed)
@@ -189,17 +191,19 @@ func main() {
 						ingredients_use = append(ingredients_use, v)
 					} else { //Otillräcklig mängd i köket, behöver handla
 						//Lägg in i ingredients_not
+						v.AbsDifference = sql.NullFloat64{Float64: math.Abs(amount_kitchen.Float64 - v.RecipeAmount.Float64), Valid: true}
 						ingredients_not = append(ingredients_not, v)
 					}
 				} else { //Null alternativt olämpligt värde köket.
 					fmt.Println(v.FoodName, " Has an unvalid amount.")
 					//Lägg till elementet i ingredients_maybe
-
+					v.Difference = sql.NullFloat64{Float64: (amount_kitchen.Float64 - v.RecipeAmount.Float64), Valid: true}
 					ingredients_maybe = append(ingredients_maybe, v)
 				}
 			} else { //Elementet finns inte i köket över huvud. Kontroll om den finns i food?
 				fmt.Println(v.FoodName, " is not in the kitchen.")
 				//Lägg till elementet i ingredients_not
+				v.AbsDifference = v.RecipeAmount
 				ingredients_not = append(ingredients_not, v)
 			}
 		}
