@@ -80,14 +80,39 @@ func main() {
 
 		// Can do
 
-		var recipe_can []Recipe // Where to save the DB SELECT
-		_, _ = db.Select(&recipe_can, "SELECT recipe.name FROM recipe WHERE recipe.name NOT IN (SELECT DISTINCT recipe_ingredients.name FROM recipe_ingredients LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL) OR kitchen.amount IS NULL)")
-		// Maybe can do
-		var recipe_maybe []Recipe // Where to save the DB SELECT
-		_, _ = db.Select(&recipe_maybe, "SELECT recipe.name FROM recipe WHERE recipe.name NOT IN (SELECT DISTINCT recipe_ingredients.name FROM recipe_ingredients LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL)) EXCEPT SELECT recipe.name FROM recipe WHERE recipe.name NOT IN (SELECT DISTINCT recipe_ingredients.name FROM recipe_ingredients LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL) OR kitchen.amount IS NULL)")
-		// Cannot do
-		var recipe_cant []Recipe // Where to save the DB SELECT
-		_, _ = db.Select(&recipe_cant, "SELECT recipe.name FROM recipe WHERE recipe.name IN (SELECT DISTINCT recipe_ingredients.name FROM recipe_ingredients LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL)) ")
+		var recipe_can []Recipe 
+		var recipe_maybe []Recipe
+		var recipe_cant []Recipe
+		_, _ = db.Select(&recipe_can, "SELECT recipe.name FROM recipe " +
+										"WHERE recipe.name NOT IN ("+
+											"SELECT DISTINCT recipe_ingredients.name "+
+											"FROM recipe_ingredients "+
+											"LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname "+
+											"WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL) "+
+											"OR kitchen.amount IS NULL "+
+										")")
+		_, _ = db.Select(&recipe_maybe, "SELECT recipe.name FROM recipe "+
+										"WHERE recipe.name NOT IN ("+
+											"SELECT DISTINCT recipe_ingredients.name "+
+											"FROM recipe_ingredients "+
+											"LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname "+
+											"WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL)"+
+										") "+
+										"EXCEPT "+ 
+										"SELECT recipe.name FROM recipe "+
+										"WHERE recipe.name NOT IN ("+
+											"SELECT DISTINCT recipe_ingredients.name FROM recipe_ingredients "+
+											"LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname "+
+											"WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL) "+
+											"OR kitchen.amount IS NULL
+										)")
+
+		_, _ = db.Select(&recipe_cant, "SELECT recipe.name FROM recipe "+
+										"WHERE recipe.name IN ("+
+											"SELECT DISTINCT recipe_ingredients.name FROM recipe_ingredients "+
+											"LEFT JOIN kitchen ON kitchen.item=recipe_ingredients.foodname "+
+											"WHERE (kitchen.amount < recipe_ingredients.amount OR kitchen.item IS NULL)"+
+										") ")
 
 		// Link to all of them
 		var recipe_all string
@@ -160,7 +185,7 @@ func main() {
 					if amount_kitchen.Float64 >= v.RecipeAmount.Float64 {
 						//Ingrediensen finns i köket, amount valid, tillräcklig mängd.
 						//Lägg till elemetet i ingredients_use
-						v.Difference = sql.NullFloat64{Float64:(amount_kitchen.Float64 - v.RecipeAmount.Float64), Valid:true}
+						v.Difference = sql.NullFloat64{Float64: (amount_kitchen.Float64 - v.RecipeAmount.Float64), Valid: true}
 						ingredients_use = append(ingredients_use, v)
 					} else { //Otillräcklig mängd i köket, behöver handla
 						//Lägg in i ingredients_not
@@ -181,8 +206,6 @@ func main() {
 
 		ingredients := map[string]interface{}{"recipe": recipeNames, "can": ingredients_use, "maybe": ingredients_maybe, "cannot": ingredients_not, "required": ingredients_required}
 		fmt.Println("ingredients: ", ingredients)
-		//create_recipes[i] = ingredients
-		//		}
 		data := map[string]interface{}{"title": "Make a dish", "recipe": recipes, "create_recipes": ingredients}
 		r.HTML(200, "make", data)
 	})
@@ -223,7 +246,6 @@ func main() {
 		var newKitchen Kitchen
 		err := db.SelectOne(&newKitchen, "SELECT * FROM kitchen WHERE Item = $1", kitchen.Item)
 
-		// Update new kitchen's amount from what is already in db
 		// If item exists
 		if err == nil {
 			fmt.Println("Trying to update kitchen")
@@ -237,11 +259,8 @@ func main() {
 			_, err = db.Update(&newKitchen)
 			checkErr(err, "Updating kitchen item")
 		} else {
-			fmt.Println("Trying to insert into kitchen")
-			// Check if food type exists
 			var food Food
 			err := db.SelectOne(&food, "SELECT * FROM food WHERE name = $1", newKitchen.Item)
-			fmt.Println(err)
 
 			newKitchen.Item = kitchen.Item
 			newKitchen.Amount.Float64 = kitchen.Amount
@@ -254,12 +273,10 @@ func main() {
 				food.Name = newKitchen.Item
 				food.Unit = kitchen.Unit
 				err = db.Insert(&food)
-				fmt.Println(food)
-				fmt.Println(err)
 			}
 
 			err = db.Insert(&newKitchen)
-			checkErr(err, "Inserting new kitchen item")
+			checkErr(err, "Could not insert new kitchen item")
 		}
 
 		r.Redirect("/", 302)
@@ -269,42 +286,25 @@ func main() {
 		fmt.Println(kitchen)
 		var newKitchen Kitchen
 		err := db.SelectOne(&newKitchen, "SELECT * FROM kitchen WHERE kitchen.Item = $1", kitchen.Item)
-		//fmt.Println(kitchen.Item)
-		//fmt.Println("kitchen.unknown: ",kitchen.Unknown)
 
 		// Update new kitchen's amount from what is already in db
 		// If item exists
-		//fmt.Println("Initializing remove item.")
 		if err == nil {
-			//fmt.Println("Trying to update kitchen")
-			if newKitchen.Amount.Valid == true { //Not null in database
-				//fmt.Println("Not null in database, desayd wether to subtract or delete.")
+			//Not null in database
+			if newKitchen.Amount.Valid == true { 
 				newKitchen.Amount.Float64 = newKitchen.Amount.Float64 - kitchen.Amount
 				if newKitchen.Amount.Float64 > 0 && kitchen.Unknown != "true" { //Still positive, and user do not want to delete.
-					//update the element
-
-					//fmt.Println("Kitchen is updating, new valid value.")
 					_, err = db.Update(&newKitchen)
 
-				} else { //Not positive, alternaly, it is set to null.
-					// Remove the element
+				// Not positive, alternatively, it is set to null.
+				} else {
 					fmt.Println("")
 					_, err = db.Delete(&newKitchen)
 				}
-
-			} else if kitchen.Unknown == "true" { //Null in the database (previous value) && the user wants to remove it.
-				//fmt.Println("Null in database and user wants to remove it")
+			// Null in the database (previous value) && the user wants to remove it.
+			} else if kitchen.Unknown == "true" { 
 				_, err = db.Delete(&newKitchen)
-			} else { //Null in the database, user doesn't want to remove it.
-				//Do nothing.
-				//fmt.Println("Do nothing. Amount added from null.")
-
-			}
-
-		} else { //if item doesn't exist
-			//Do nothing. Remove what doesn't exist?
-			//fmt.Println("Item doesn't exist, nil from database.")
-			//fmt.Println(err)
+			} 
 		}
 
 		r.Redirect("/", 301)
@@ -315,23 +315,19 @@ func main() {
 
 // Database
 func initDb() *gorp.DbMap {
-	// connect to db using standard Go database/sql API
-	// use whatever database/sql driver you wish
+	// Connect to db using standard Go database/sql API
 	db, err := sql.Open("postgres", "user=nisse password=nisse dbname=lab2 sslmode=disable")
 	checkErr(err, "sql.Open failed")
 
-	// construct a gorp DbMap
+	// Construct a gorp DbMap
 	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.PostgresDialect{}}
 
-	// add a table, setting the table name to 'posts' and
-	// specifying that the Id property is an auto incrementing PK
+	// add all tables, first argument of SetKeys is auto incrementing t/f
 	dbmap.AddTableWithName(Kitchen{}, "kitchen").SetKeys(false, "Item")
 	dbmap.AddTableWithName(Food{}, "food").SetKeys(false, "Name")
 	dbmap.AddTableWithName(Recipe{}, "recipe").SetKeys(false, "Name")
 	dbmap.AddTableWithName(RecipeIngredients{}, "recipe_ingredients").SetKeys(false, "Name").SetKeys(false, "FoodName")
 
-	// create the table. in a production system you'd generally
-	// use a migration tool, or create the tables via scripts
 	err = dbmap.CreateTablesIfNotExists()
 	checkErr(err, "Create tables failed")
 
@@ -345,6 +341,9 @@ func checkErr(err error, msg string) {
 	}
 }
 
+//Control if an item (string) is represented in a Kitchen-struct.
+//Makes the assumption that if the item is in the Kitchen, then it is in the database Food.
+//Don't kow what that might lead to.
 func strInKitchen(str string, kitchen []Kitchen) bool {
 	for _, b := range kitchen {
 		if str == b.Item {
@@ -354,18 +353,17 @@ func strInKitchen(str string, kitchen []Kitchen) bool {
 	return false
 }
 
-//Control if an item (string) is represented in a Kitchen-struct.
-//Makes the assumption that if the item is in the Kitchen, then it is in the database Food.
-//Don't kow what that might lead to.
+// Same as strInKitchen but returns the amount for the item
 func amountInKitchen(item string, kitchen []Kitchen) sql.NullFloat64 {
 	for _, b := range kitchen {
 		if item == b.Item {
 			return b.Amount
 		}
 	}
-	return sql.NullFloat64{Float64:0,Valid:false}
+	return sql.NullFloat64{Float64: 0, Valid: false}
 }
 
+// Middleware for database connection
 func dbHandler() martini.Handler {
 	// Return a martini.Handler to be called for every request
 	return func(c martini.Context) {
